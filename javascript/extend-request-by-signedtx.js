@@ -1,4 +1,4 @@
-import { TronWeb } from 'tronweb';
+const {TronWeb} = require('tronweb');
 
 const TRONSAVE_API_URL = "https://api.tronsave.io"
 const RECEIVER = "your-receiver-address"

@@ -1,4 +1,4 @@
-import { TronWeb } from 'tronweb';
+const {TronWeb} = require('tronweb');
 
 // Configuration constants
 const TRONSAVE_RECEIVER_ADDRESS = "TWZEhq5JuUVvGtutNgnRBATbF8BnHGyn4S"; //in testnet mode change it to "TATT1UzHRikft98bRFqApFTsaSw73ycfoS"
@@ -10,7 +10,7 @@ const RESOURCE_TYPE = "ENERGY"; // ENERGY or BANDWIDTH
 const REQUEST_ADDRESS = "your_request_address"; //Change it
 const RECEIVER_ADDRESS = "your_receiver_address"; //Change it
 const BUY_AMOUNT = 32000; //Chanageable
-const DURATION_SEC = 3 * 86400; //3 days.Changeable
+const DURATION_SEC = 3600; // 1 hour
 
 // Initialize TronWeb instance
 const tronWeb = new TronWeb({
@@ -19,18 +19,13 @@ const tronWeb = new TronWeb({
     eventServer: TRON_FULL_NODE,
 });
 
-const GetEstimate = async (requestAddress, receiverAddress, amount, durationSec) => {
+const GetEstimate = async (resourceAmount, durationSec) => {
     const url = TRONSAVE_API_URL + "/v2/estimate-buy-resource";
     const body = {
-        amount,
+        resourceAmount,
         unitPrice: "MEDIUM",
         resourceType: RESOURCE_TYPE,
         durationSec,
-        requester: requestAddress,
-        receiver: receiverAddress,
-        options: {
-            allowPartialFill: true,
-        },
     };
     const data = await fetch(url, {
         method: "POST",
@@ -62,10 +57,11 @@ const GetSignedTransaction = async (estimateTrx, requestAddress) => {
     return signedTx;
 };
 
-const CreateOrder = async (signedTx, receiverAddress, unitPrice, durationSec, options) => {
+const CreateOrder = async (resourceAmount, signedTx, receiverAddress, unitPrice, durationSec, options) => {
     const url = TRONSAVE_API_URL + "/v2/buy-resource";
     const body = {
         resourceType: RESOURCE_TYPE,
+        resourceAmount,
         unitPrice,
         allowPartialFill: true,
         receiver: receiverAddress,
@@ -100,7 +96,7 @@ const CreateOrder = async (signedTx, receiverAddress, unitPrice, durationSec, op
  */
 const BuyResourceUsingPrivateKey = async () => {
     //Step 1: Estimate the cost of buy order
-    const estimateData = await GetEstimate(REQUEST_ADDRESS, RECEIVER_ADDRESS, BUY_AMOUNT, DURATION_SEC);
+    const estimateData = await GetEstimate(BUY_AMOUNT, DURATION_SEC);
     if (estimateData.error) throw new Error(estimateData.message);
     console.log(estimateData);
     const { unitPrice, estimateTrx, durationSec, availableResource } = estimateData.data;
@@ -146,11 +142,7 @@ const BuyResourceUsingPrivateKey = async () => {
          */
 
         //Step 3: Create order
-        const options = {
-            allowPartialFill: true,
-            maxPriceAccepted: 100,
-        }
-        const dataCreateOrder = await CreateOrder(signedTx, RECEIVER_ADDRESS, unitPrice, durationSec, options);
+        const dataCreateOrder = await CreateOrder(BUY_AMOUNT, signedTx, RECEIVER_ADDRESS, unitPrice, durationSec);
         console.log(dataCreateOrder);
     }
 };

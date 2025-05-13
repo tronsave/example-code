@@ -1,71 +1,51 @@
 <?php
 
 // Configuration
-const API_KEY = 'your-api-key';
-const TRONSAVE_API_URL = "https://api.tronsave.io";
-const RECEIVER_ADDRESS = 'your-receiver-address';
+const API_KEY = 'your_api_key';
+const TRONSAVE_API_URL = "https://api-dev.tronsave.io";
+const RECEIVER_ADDRESS = 'your_receiver_address';
 const BUY_AMOUNT = 32000;
 const DURATION = 3600; // 1 hour
 const MAX_PRICE_ACCEPTED = 100;
-const RESOURCE_TYPE = "ENERGY"; // ENERGY or BANDWIDTH
+const RESOURCE_TYPE = "ENERGY";
 
-/**
- * Sleep function
- * @param int $ms Milliseconds to sleep
- * @return void
- */
-function sleep_ms(int $ms): void {
+function sleep_ms($ms) {
     usleep($ms * 1000);
 }
 
-/**
- * Get order book
- * @return array
- */
-function getOrderBook(): array {
-    $url = TRONSAVE_API_URL . "/v2/order-book?address=" . RECEIVER_ADDRESS;
+function getOrderBook($apiKey, $receiverAddress) {
+    $url = TRONSAVE_API_URL . "/v2/order-book?address=" . $receiverAddress;
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'apikey: ' . API_KEY
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => ['apikey: ' . $apiKey]
     ]);
     $response = curl_exec($ch);
     curl_close($ch);
     return json_decode($response, true);
 }
 
-/**
- * Get account info
- * @return array
- */
-function getAccountInfo(): array {
+function getAccountInfo($apiKey) {
     $url = TRONSAVE_API_URL . "/v2/user-info";
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'apikey: ' . API_KEY
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => ['apikey: ' . $apiKey]
     ]);
     $response = curl_exec($ch);
     curl_close($ch);
     return json_decode($response, true);
 }
 
-/**
- * Buy resource
- * @param int $amount
- * @param int $durationSec
- * @param int $maxPriceAccepted
- * @return array
- */
-function buyResource(int $amount, int $durationSec, int $maxPriceAccepted): array {
+function buyResource($apiKey, $receiverAddress, $resourceAmount, $durationSec, $maxPriceAccepted) {
     $url = TRONSAVE_API_URL . "/v2/buy-resource";
     $body = [
         'resourceType' => RESOURCE_TYPE,
         'unitPrice' => "MEDIUM",
-        'amount' => $amount,
-        'receiver' => RECEIVER_ADDRESS,
+        'resourceAmount' => $resourceAmount,
+        'receiver' => $receiverAddress,
         'durationSec' => $durationSec,
         'options' => [
             'allowPartialFill' => true,
@@ -75,81 +55,75 @@ function buyResource(int $amount, int $durationSec, int $maxPriceAccepted): arra
     ];
 
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'apikey: ' . API_KEY,
-        'Content-Type: application/json'
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode($body),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            'apikey: ' . $apiKey,
+            'Content-Type: application/json'
+        ]
     ]);
     $response = curl_exec($ch);
     curl_close($ch);
     return json_decode($response, true);
 }
 
-/**
- * Get order details
- * @param string $orderId
- * @return array
- */
-function getOrderDetails(string $orderId): array {
+function getOneOrderDetails($apiKey, $orderId) {
     $url = TRONSAVE_API_URL . "/v2/order/" . $orderId;
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'apikey: ' . API_KEY
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => ['apikey: ' . $apiKey]
     ]);
     $response = curl_exec($ch);
     curl_close($ch);
     return json_decode($response, true);
 }
 
-/**
- * Main function to create order
- */
-function createOrderByUsingApiKey(): void {
-    // Check energy available
-    $orderBook = getOrderBook();
-    print_r($orderBook);
+function createOrderByUsingApiKey() {
+    try {
+        // Check energy available
+        $orderBook = getOrderBook(API_KEY, RECEIVER_ADDRESS);
+        print_r($orderBook);
 
-    $needTrx = MAX_PRICE_ACCEPTED * BUY_AMOUNT;
+        $needTrx = MAX_PRICE_ACCEPTED * BUY_AMOUNT;
 
-    // Check if balance is enough
-    $accountInfo = getAccountInfo();
-    print_r($accountInfo);
+        // Check if balance is enough
+        $accountInfo = getAccountInfo(API_KEY);
+        print_r($accountInfo);
 
-    $isBalanceEnough = (int)$accountInfo['data']['balance'] >= $needTrx;
-    echo "Is balance enough: " . ($isBalanceEnough ? "Yes" : "No") . "\n";
+        $isBalanceEnough = (int)$accountInfo['data']['balance'] >= $needTrx;
+        echo "Is balance enough: " . ($isBalanceEnough ? "Yes" : "No") . "\n";
 
-    if ($isBalanceEnough) {
-        $buyResourceOrder = buyResource(BUY_AMOUNT, DURATION, MAX_PRICE_ACCEPTED);
-        print_r($buyResourceOrder);
-
-        if (!$buyResourceOrder['error']) {
-            while (true) {
-                sleep_ms(3000);
-                $orderDetail = getOrderDetails($buyResourceOrder['data']['orderId']);
-                print_r($orderDetail);
-
-                if ($orderDetail['data']['fulfilledPercent'] === 100 || $orderDetail['data']['remainAmount'] === 0) {
-                    echo "Order fulfilled successfully\n";
-                    break;
-                } else {
-                    echo "Order not fulfilled, waiting 3s and rechecking...\n";
-                }
-            }
-        } else {
+        if ($isBalanceEnough) {
+            $buyResourceOrder = buyResource(API_KEY, RECEIVER_ADDRESS, BUY_AMOUNT, DURATION, MAX_PRICE_ACCEPTED);
             print_r($buyResourceOrder);
-            throw new Exception("Buy Order Failed");
+
+            if (!$buyResourceOrder['error']) {
+                while (true) {
+                    sleep_ms(3000);
+                    $orderDetail = getOneOrderDetails(API_KEY, $buyResourceOrder['data']['orderId']);
+                    print_r($orderDetail);
+
+                    if ($orderDetail['data']['fulfilledPercent'] === 100 || $orderDetail['data']['remainAmount'] === 0) {
+                        echo "Your order already fulfilled\n";
+                        break;
+                    } else {
+                        echo "Your order is not fulfilled, wait 3s and recheck\n";
+                    }
+                }
+            } else {
+                print_r($buyResourceOrder);
+                throw new Exception("Buy Order Failed");
+            }
         }
+    } catch (Exception $e) {
+        echo "Error: " . $e->getMessage() . "\n";
     }
 }
 
 // Run the main function
-try {
-    createOrderByUsingApiKey();
-} catch (Exception $e) {
-    echo "Error: " . $e->getMessage() . "\n";
-} 
+createOrderByUsingApiKey();

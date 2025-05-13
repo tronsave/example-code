@@ -1,6 +1,6 @@
-const API_KEY = `your-api-key`; // change it
-const TRONSAVE_API_URL = "https://api.tronsave.io" //in testnet mode change it to "https://api-dev.tronsave.io"
-const RECEIVER_ADDRESS = 'your-receiver-address' // change it
+const API_KEY = `your_api_key`; // change it
+const TRONSAVE_API_URL = "https://api-dev.tronsave.io" //in testnet mode change it to "https://api-dev.tronsave.io"
+const RECEIVER_ADDRESS = 'your_receiver_address' // change it
 const BUY_AMOUNT = 32000 // change it
 const DURATION = 3600 // current value: 1h. change it
 const MAX_PRICE_ACCEPTED = 100 // change it
@@ -62,12 +62,12 @@ const GetAccountInfo = async (apiKey) => {
 }
 
 
-const BuyResource = async (apiKey, receiverAddress, amount, durationSec, maxPriceAccepted) => {
+const BuyResource = async (apiKey, receiverAddress, resourceAmount, durationSec, maxPriceAccepted) => {
     const url = `${TRONSAVE_API_URL}/v2/buy-resource`
     const body = {
         resourceType: RESOURCE_TYPE,
         unitPrice: "MEDIUM", //price in sun or "SLOW"|"MEDIUM"|"FAST"
-        amount, //Amount of resource want to buy
+        resourceAmount, //Amount of resource want to buy
         receiver: receiverAddress,
         durationSec, //order duration in sec. Default: 259200 (3 days)
         options: {
@@ -136,7 +136,71 @@ const GetOneOrderDetails = async (api_key, order_id) => {
      */
     return response
 }
-
+const GetOrderHistory = async (apiKey) => {
+    const url = `${TRONSAVE_API_URL}/v2/orders`
+    const data = await fetch(url, {
+        headers: {
+            'apikey': apiKey
+        }
+    })
+    const response = await data.json()
+     /**
+     * Example response 
+        {
+            "error": false,
+            "message": "Success",
+            "data": 
+            {
+                "total": 2,
+                "data": [
+                    {
+                        "id": "6809b08a14b1cb7c5d195d66",
+                        "requester": "TTgMEAhuzPchDAL4pnm2tCNmqXp13AxzAd",
+                        "receiver": "TFwUFWr3QV376677Z8VWXxGUAMFSrq1MbM",
+                        "resourceAmount": 40000,
+                        "resourceType": "ENERGY",
+                        "remainAmount": 0,
+                        "orderType": "NORMAL",
+                        "price": 81.5,
+                        "durationSec": 900,
+                        "allowPartialFill": false,
+                        "payoutAmount": 3260000,
+                        "fulfilledPercent": 100,
+                        "delegates": [
+                            {
+                                "delegator": "THnnMCe67VMDXoivepiA7ZQSB8jbgKDodf",
+                                "amount": 40000,
+                                "txid": "19be98d0183b29575d74999a93154b09b3c7d05051cdbd52c667cd9f0b3cc9b0"
+                            }
+                        ]
+                    },
+                    {
+                        "id": "6809aaf2e2e17d3c588b467a",
+                        "requester": "TTgMEAhuzPchDAL4pnm2tCNmqXp13AxzAd",
+                        "receiver": "TFwUFWr3QV376677Z8VWXxGUAMFSrq1MbM",
+                        "resourceAmount": 40000,
+                        "resourceType": "ENERGY",
+                        "remainAmount": 0,
+                        "orderType": "NORMAL",
+                        "price": 81.5,
+                        "durationSec": 900,
+                        "allowPartialFill": false,
+                        "payoutAmount": 3260000,
+                        "fulfilledPercent": 100,
+                        "delegates": [
+                            {
+                                "delegator": "THnnMCe67VMDXoivepiA7ZQSB8jbgKDodf",
+                                "amount": 40000,
+                                "txid": "447e3fb28ad7580554642d08b9a6b220bc86f667b47edad47f16802594b6b1e3"
+                            }
+                        ]
+                    },
+                ]
+            }
+        }
+     */
+    return response
+}
 const CreateOrderByUsingApiKey = async () => {
     //Check energy available
     const orderBook = await GetOrderBook(API_KEY, RECEIVER_ADDRESS)
